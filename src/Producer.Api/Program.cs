@@ -1,3 +1,4 @@
+using Producer.Api.Contracts;
 using Producer.Api.Extensions;
 using Producer.Api.Kafka;
 using Shared.Events;
@@ -13,18 +14,19 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapPost("/orders", async (
+    CreateOrderRequest request,
     IKafkaProducer producer,
     CancellationToken cancellationToken) =>
 {
     var order = new OrderCreated(
         Guid.NewGuid(),
-        Guid.NewGuid(),
-        Random.Shared.Next(100, 5000),
+        request.CustomerId,
+        request.Amount,
         DateTime.UtcNow);
 
     await producer.PublishAsync(order, cancellationToken);
 
-    return Results.Accepted();
+    return Results.Accepted(null, order);
 });
 
 app.Run();
