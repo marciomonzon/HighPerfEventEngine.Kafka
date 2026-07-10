@@ -9,3 +9,4 @@
 /home/monzon/projetos/HighPerfEventEngine.Kafka/src/Shared/obj/Debug/net10.0/refint/Shared.dll
 /home/monzon/projetos/HighPerfEventEngine.Kafka/src/Shared/obj/Debug/net10.0/Shared.pdb
 /home/monzon/projetos/HighPerfEventEngine.Kafka/src/Shared/obj/Debug/net10.0/ref/Shared.dll
+/home/monzon/projetos/HighPerfEventEngine.Kafka/src/Shared/obj/Debug/net10.0/Shared.sourcelink.json
