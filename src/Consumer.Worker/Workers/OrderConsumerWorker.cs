@@ -25,63 +25,63 @@ public sealed class OrderConsumerWorker : BackgroundService
         _consumer.Subscribe(Topics.OrdersCreated);
 
         while (!stoppingToken.IsCancellationRequested)
-{
-    try
-    {
-        var result = _consumer.Consume(stoppingToken);
-
-        var order = JsonSerializer.Deserialize<OrderCreated>(
-            result.Message.Value)!;
-
-        var processed = false;
-
-        for (var attempt = 1; attempt <= MaxRetries; attempt++)
         {
             try
             {
-                await ProcessOrderAsync(order, stoppingToken);
+                var result = _consumer.Consume(stoppingToken);
 
-                processed = true;
+                var order = JsonSerializer.Deserialize<OrderCreated>(
+                    result.Message.Value)!;
 
+                var processed = false;
+
+                for (var attempt = 1; attempt <= MaxRetries; attempt++)
+                {
+                    try
+                    {
+                        await ProcessOrderAsync(order, stoppingToken);
+
+                        processed = true;
+
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(
+                            ex,
+                            "Tentativa {Attempt}/{MaxRetries}",
+                            attempt,
+                            MaxRetries);
+
+                        if (attempt < MaxRetries)
+                        {
+                            await Task.Delay(
+                                TimeSpan.FromSeconds(attempt),
+                                stoppingToken);
+                        }
+                    }
+                }
+
+                if (!processed)
+                {
+                    _logger.LogError(
+                        "Falha definitiva no pedido {OrderId}",
+                        order.OrderId);
+
+                    continue;
+                }
+
+                _consumer.Commit(result);
+
+                _logger.LogInformation(
+                    "Offset {Offset} confirmado",
+                    result.Offset);
+            }
+            catch (OperationCanceledException)
+            {
                 break;
             }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(
-                    ex,
-                    "Tentativa {Attempt}/{MaxRetries}",
-                    attempt,
-                    MaxRetries);
-
-                if (attempt < MaxRetries)
-                {
-                    await Task.Delay(
-                        TimeSpan.FromSeconds(attempt),
-                        stoppingToken);
-                }
-            }
         }
-
-        if (!processed)
-        {
-            _logger.LogError(
-                "Falha definitiva no pedido {OrderId}",
-                order.OrderId);
-
-            continue;
-        }
-
-        _consumer.Commit(result);
-
-        _logger.LogInformation(
-            "Offset {Offset} confirmado",
-            result.Offset);
-    }
-    catch (OperationCanceledException)
-    {
-        break;
-    }
-}
 
         _consumer.Close();
 
@@ -91,14 +91,14 @@ public sealed class OrderConsumerWorker : BackgroundService
     private async Task ProcessOrderAsync(
     OrderCreated order,
     CancellationToken cancellationToken)
-{
-    _logger.LogInformation(
-        "Processando pedido {OrderId}",
-        order.OrderId);
+    {
+        _logger.LogInformation(
+            "Processando pedido {OrderId}",
+            order.OrderId);
 
-    await Task.Delay(1000, cancellationToken);
+        await Task.Delay(1000, cancellationToken);
 
-    // Simular erro
-    throw new Exception("Erro no processamento");
-}
+        // Simular erro
+        throw new Exception("Erro no processamento");
+    }
 }
