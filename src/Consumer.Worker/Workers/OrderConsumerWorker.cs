@@ -10,6 +10,8 @@ public sealed class OrderConsumerWorker : BackgroundService
     private readonly IConsumer<string, string> _consumer;
     private readonly ILogger<OrderConsumerWorker> _logger;
 
+    private const int MaxRetries = 3;
+
     public OrderConsumerWorker(
         IConsumer<string, string> consumer,
         ILogger<OrderConsumerWorker> logger)
@@ -23,46 +25,80 @@ public sealed class OrderConsumerWorker : BackgroundService
         _consumer.Subscribe(Topics.OrdersCreated);
 
         while (!stoppingToken.IsCancellationRequested)
+{
+    try
+    {
+        var result = _consumer.Consume(stoppingToken);
+
+        var order = JsonSerializer.Deserialize<OrderCreated>(
+            result.Message.Value)!;
+
+        var processed = false;
+
+        for (var attempt = 1; attempt <= MaxRetries; attempt++)
         {
             try
             {
-                var result = _consumer.Consume(stoppingToken);
+                await ProcessOrderAsync(order, stoppingToken);
 
-                var order = JsonSerializer.Deserialize<OrderCreated>(result.Message.Value);
+                processed = true;
 
-                // Simula processamento
-                await Task.Delay(1000, stoppingToken);
-
-                _consumer.Commit(result);
-
-                _logger.LogInformation(
-                    "Committed offset {Offset}",
-                    result.Offset);
-
-                _logger.LogInformation("""
-                    ========= ORDER RECEIVED =========
-                    OrderId: {OrderId}
-                    CustomerId: {CustomerId}
-                    Amount: {Amount}
-                    CreatedAt: {CreatedAt}
-                    Offset: {Offset}
-                    Partition: {Partition}
-                    """,
-                    order!.OrderId,
-                    order.CustomerId,
-                    order.Amount,
-                    order.CreatedAt,
-                    result.Offset,
-                    result.Partition);
-            }
-            catch (OperationCanceledException)
-            {
                 break;
             }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Tentativa {Attempt}/{MaxRetries}",
+                    attempt,
+                    MaxRetries);
+
+                if (attempt < MaxRetries)
+                {
+                    await Task.Delay(
+                        TimeSpan.FromSeconds(attempt),
+                        stoppingToken);
+                }
+            }
         }
+
+        if (!processed)
+        {
+            _logger.LogError(
+                "Falha definitiva no pedido {OrderId}",
+                order.OrderId);
+
+            continue;
+        }
+
+        _consumer.Commit(result);
+
+        _logger.LogInformation(
+            "Offset {Offset} confirmado",
+            result.Offset);
+    }
+    catch (OperationCanceledException)
+    {
+        break;
+    }
+}
 
         _consumer.Close();
 
         await Task.CompletedTask;
     }
+
+    private async Task ProcessOrderAsync(
+    OrderCreated order,
+    CancellationToken cancellationToken)
+{
+    _logger.LogInformation(
+        "Processando pedido {OrderId}",
+        order.OrderId);
+
+    await Task.Delay(1000, cancellationToken);
+
+    // Simular erro
+    throw new Exception("Erro no processamento");
+}
 }
