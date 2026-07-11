@@ -43,6 +43,19 @@ O Redis é utilizado para suportar a idempotência no processamento das mensagen
 
 Esse comportamento é importante para garantir consistência em cenários de retry, reconexão ou reenvio de mensagens.
 
+### Observabilidade com OpenTelemetry e Jaeger
+O projeto também inclui observabilidade baseada em OpenTelemetry. Os serviços geram spans de tracing para rastrear o fluxo do pedido, desde a requisição HTTP até a publicação e o processamento na fila.
+
+Os traces são exportados para o Jaeger, que pode ser visualizado na interface web após subir os containers.
+
+## Serviços do Docker Compose
+O arquivo docker-compose.yml sobe os seguintes serviços:
+
+- kafka: broker do Kafka.
+- kafka-ui: interface web para visualizar tópicos e mensagens do Kafka.
+- redis: instância local do Redis.
+- jaeger: backend de tracing com UI para visualizar os spans do OpenTelemetry.
+
 ## Como testar
 
 ### 1. Subir os serviços necessários
@@ -82,7 +95,12 @@ Exemplo de payload:
 ### 5. Verificar o fluxo
 - o produtor publica a mensagem no Kafka;
 - o consumidor recebe a mensagem;
-- os logs dos projetos mostram o processamento do evento.
+- os logs dos projetos mostram o processamento do evento;
+- no Jaeger, é possível verificar os traces da requisição e do processamento.
+
+### 6. Acessar a observabilidade
+- Jaeger UI: http://localhost:16686
+- Kafka UI: http://localhost:8080
 
 ## Observação importante
 
