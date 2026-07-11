@@ -1,0 +1,22 @@
+# Build artifacts
+bin/
+obj/
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Local configuration
+appsettings.Development.json
+appsettings.Local.json
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -24,7 +24,7 @@ public static class ServiceCollectionExtensions
                 BootstrapServers = options.BootstrapServers,
                 GroupId = options.GroupId,
                 AutoOffsetReset = AutoOffsetReset.Earliest,
-                EnableAutoCommit = true
+                EnableAutoCommit = false
             };
 
             return new ConsumerBuilder<string, string>(config)

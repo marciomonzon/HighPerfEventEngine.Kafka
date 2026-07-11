@@ -30,6 +30,15 @@ public sealed class OrderConsumerWorker : BackgroundService
 
                 var order = JsonSerializer.Deserialize<OrderCreated>(result.Message.Value);
 
+                // Simula processamento
+                await Task.Delay(1000, stoppingToken);
+
+                _consumer.Commit(result);
+
+                _logger.LogInformation(
+                    "Committed offset {Offset}",
+                    result.Offset);
+
                 _logger.LogInformation("""
                     ========= ORDER RECEIVED =========
                     OrderId: {OrderId}
