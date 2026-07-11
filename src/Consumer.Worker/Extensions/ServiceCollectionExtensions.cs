@@ -1,5 +1,6 @@
 using Confluent.Kafka;
 using Consumer.Worker.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Consumer.Worker.Extensions;
 
@@ -28,6 +29,21 @@ public static class ServiceCollectionExtensions
             };
 
             return new ConsumerBuilder<string, string>(config)
+                .Build();
+        });
+
+        services.AddSingleton<IProducer<string, string>>(sp =>
+        {
+            var options = sp
+                .GetRequiredService<IOptions<KafkaOptions>>()
+                .Value;
+
+            var config = new ProducerConfig
+            {
+                BootstrapServers = options.BootstrapServers
+            };
+
+            return new ProducerBuilder<string, string>(config)
                 .Build();
         });
 
