@@ -1,10 +1,13 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Confluent.Kafka;
 using Consumer.Worker.Idempotency;
 using Microsoft.Extensions.Hosting;
+using OpenTelemetry.Trace;
 using Shared.Constants;
 using Shared.Events;
+using Shared.Observability;
 
 namespace Consumer.Worker.Workers;
 
@@ -68,6 +71,14 @@ public sealed class OrderConsumerWorker : BackgroundService
         ConsumeResult<string, string> result,
         CancellationToken cancellationToken)
     {
+        using var activity = Telemetry.ActivitySource.StartActivity("Kafka Consume");
+        activity?.SetTag("messaging.system", "kafka");
+        activity?.SetTag("messaging.destination", Topics.OrdersCreated);
+        activity?.SetTag("partition", result.Partition.Value);
+        activity?.SetTag("offset", result.Offset.Value);
+        activity?.SetTag("message.key", result.Message.Key);
+
+
         var order = JsonSerializer.Deserialize<OrderCreated>(result.Message.Value);
 
         if (order is null)
@@ -113,6 +124,11 @@ public sealed class OrderConsumerWorker : BackgroundService
             catch (Exception ex)
             {
                 lastException = ex;
+
+                activity?.RecordException(ex);
+                activity?.SetStatus(
+                    ActivityStatusCode.Error,
+                    ex.Message);
 
                 _logger.LogWarning(
                     ex,
