@@ -1,6 +1,7 @@
 using Confluent.Kafka;
 using Consumer.Worker.Configuration;
 using Microsoft.Extensions.Options;
+using StackExchange.Redis;
 
 namespace Consumer.Worker.Extensions;
 
@@ -45,6 +46,18 @@ public static class ServiceCollectionExtensions
 
             return new ProducerBuilder<string, string>(config)
                 .Build();
+        });
+
+        services.Configure<RedisOptions>(
+            configuration.GetSection(RedisOptions.SectionName));
+
+        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            var options = sp
+                .GetRequiredService<IOptions<RedisOptions>>()
+                .Value;
+
+            return ConnectionMultiplexer.Connect(options.ConnectionString);
         });
 
         return services;
