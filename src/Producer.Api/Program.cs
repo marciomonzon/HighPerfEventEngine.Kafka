@@ -19,7 +19,7 @@ app.MapPost("/orders", async (
     CancellationToken cancellationToken) =>
 {
     var order = new OrderCreated(
-        Guid.NewGuid(),
+        request.OrderId,
         request.CustomerId,
         request.Amount,
         DateTime.UtcNow);

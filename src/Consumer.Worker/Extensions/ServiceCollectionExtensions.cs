@@ -1,5 +1,6 @@
 using Confluent.Kafka;
 using Consumer.Worker.Configuration;
+using Consumer.Worker.Idempotency;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
@@ -59,6 +60,8 @@ public static class ServiceCollectionExtensions
 
             return ConnectionMultiplexer.Connect(options.ConnectionString);
         });
+
+        services.AddSingleton<IProcessedMessageStore, RedisProcessedMessageStore>();
 
         return services;
     }
